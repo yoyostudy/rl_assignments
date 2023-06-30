@@ -9,13 +9,13 @@ sys.path.append(os.getcwd())
 import tools.util.plot_util as plot_util
 
 files = [
-    "output/log.txt",
+    "output/atari_breakout_dqn_log.txt",
 ]
 
 draw_band = True
 x_key = "Samples"
 y_key = "Test_Return"
-plot_title = "BC - Cheetah"
+plot_title = "DQN - Breakout"
 std_key = None
 
 def filter_data(x, window_size):

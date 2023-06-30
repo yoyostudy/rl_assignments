@@ -129,7 +129,7 @@ class DQNAgent(base_agent.BaseAgent):
         epsilon_end = self._exp_prob_end
         n_max = self._exp_anneal_samples
         n = self._sample_count
-        linear_anneal = np.clip( n/n_max, 0, 1)
+        linear_anneal = min(n/n_max, 1)
         prob = (1-linear_anneal)*epsilon_begin + linear_anneal*epsilon_end
         
         return prob
@@ -149,10 +149,9 @@ class DQNAgent(base_agent.BaseAgent):
         # a = torch.zeros(qs.shape[0], device=self._device, dtype=torch.int64)
         
         if np.random.rand() < exp_prob:
-            a = torch.randint(0, qs.shape[1], qs.shape[0], device=self._device, dtype=torch.int64)
+            a = torch.randint(0, qs.shape[1], (qs.shape[0],), device=self._device, dtype=torch.int64)
         else:
             a = torch.argmax(qs, dim=-1)
-            
         return a
     
     def _compute_tar_vals(self, r, norm_next_obs, done):
@@ -167,8 +166,8 @@ class DQNAgent(base_agent.BaseAgent):
         
         # placeholder
         # tar_vals = torch.zeros_like(r)
-        
-        tar_vals = r + self._gamma * torch.max(self._tar_model.eval_q(norm_next_obs), dim=-1)[0] * (1-done)
+
+        tar_vals = r + self._discount * torch.max(self._tar_model.eval_q(norm_next_obs), dim=-1)[0] * (1-done)
 
         return tar_vals
 
@@ -183,8 +182,9 @@ class DQNAgent(base_agent.BaseAgent):
         # placeholder
         # loss = torch.zeros(1)
         
-        loss = torch.nn.functional.mse_loss(self._model.eval_q(norm_obs)[torch.arange(norm_obs.shape[0]), a], tar_vals)
-        
+        qs = self._model.eval_q(norm_obs)
+        q_val = torch.gather(qs, 1, a).squeeze()
+        loss = torch.nn.functional.mse_loss(q_val, tar_vals)
         return loss
     
     def _sync_tar_model(self):
@@ -195,9 +195,9 @@ class DQNAgent(base_agent.BaseAgent):
         the parameters of a model.
         '''
         self._tar_model.load_state_dict(self._model.state_dict())
-        self._tar_model.eval()
-        self._tar_model.to(self._device)
-        for param in self._tar_model.parameters():
-            param.requires_grad = False
+        # self._tar_model.eval()
+        # self._tar_model.to(self._device)
+        # for param in self._tar_model.parameters():
+        #     param.requires_grad = False
             
         return
