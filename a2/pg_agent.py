@@ -16,11 +16,11 @@ class PGAgent(base_agent.BaseAgent):
     def _load_params(self, config):
         super()._load_params(config)
         
-        self._batch_size = config["batch_size"]
+        self._batch_size = config["batch_size"] ## number of samples used in each iteration
         self._critic_update_epoch = config["critic_update_epoch"]
-        self._norm_adv_clip = config["norm_adv_clip"]
-        self._action_bound_weight = config["action_bound_weight"]
-
+        self._norm_adv_clip = config["norm_adv_clip"]  ## limit the advantage in a given range
+        self._action_bound_weight = config["action_bound_weight"] ## limit the range of actions
+        
         return
 
     def _build_model(self, config):
@@ -79,8 +79,11 @@ class PGAgent(base_agent.BaseAgent):
             norm_a = norm_action_dist.mode
         else:
             assert(False), "Unsupported agent mode: {}".format(self._mode)
-        
+            
+        norm_a_logp = norm_action_dist.log_prob(norm_a)
+
         norm_a = norm_a.detach()
+        norm_a_logp = norm_a_logp.detach()
         a = self._a_norm.unnormalize(norm_a)
 
         info = dict()
@@ -192,9 +195,12 @@ class PGAgent(base_agent.BaseAgent):
         indicating if a timestep is the last timestep of an episode, Output a
         tensor (return_t) containing the return (i.e. reward-to-go) at each timestep.
         '''
-        
-        # placeholder
         return_t = torch.zeros_like(r)
+        curr_return = 0
+        for i in reversed(range(r.shape[0])):
+            curr_return = r[i] + self._discount * curr_return * (1-done[i])
+            return_t[i] = curr_return
+
         return return_t
 
     def _calc_adv(self, norm_obs, ret):
@@ -202,9 +208,8 @@ class PGAgent(base_agent.BaseAgent):
         TODO 2.2: Given the normalized observations (norm_obs) and the return at
         every timestep (ret), output the advantage at each timestep (adv).
         '''
-        
-        # placeholder
-        adv = torch.zeros_like(ret)
+        value_s = self._model.eval_critic(norm_obs)
+        adv = ret - value_s.squeeze(1)
         return adv
 
     def _calc_critic_loss(self, norm_obs, tar_val):
@@ -213,9 +218,8 @@ class PGAgent(base_agent.BaseAgent):
         every timestep (tar_val), compute a loss for updating the value
         function (critic).
         '''
-        
-        # placeholder
-        loss = torch.zeros(1)
+        value_s = self._model.eval_critic(norm_obs).squeeze(1)
+        loss = torch.mean( (tar_val-value_s)**2)
         return loss
 
     def _calc_actor_loss(self, norm_obs, norm_a, adv):
@@ -224,7 +228,9 @@ class PGAgent(base_agent.BaseAgent):
         actions (norm_a), and the advantage at every timestep (adv), compute
         a loss for updating the policy (actor).
         '''
-        
-        # placeholder
-        loss = torch.zeros(1)
-        return loss
+        norm_action_dist = self._model.eval_actor(norm_obs)
+        norm_action_logp = norm_action_dist.log_prob(norm_a)
+        new_adv = adv.clone().detach() 
+        v_loss = - torch.mean(new_adv*norm_action_logp)
+
+        return v_loss

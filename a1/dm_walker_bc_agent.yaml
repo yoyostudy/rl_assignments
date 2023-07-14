@@ -14,7 +14,7 @@ steps_per_iter: 100
 iters_per_output: 10
 test_episodes: 10
 
-learning_rate: 5e-4
+learning_rate: 5e-3 #5e-4
 update_epochs: 20
 
 exp_buffer_size: 1000000

@@ -12,6 +12,6 @@ iters_per_output: 10
 test_episodes: 32
 
 population_size: 40
-elite_ratio: 0.25
+elite_ratio: 0.3
 eps_per_candidate: 5
 min_param_std: 0.1

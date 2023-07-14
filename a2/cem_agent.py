@@ -98,12 +98,16 @@ class CEMAgent(base_agent.BaseAgent):
         self._param_mean and standard deviation self._param_std. Output a tensor
         containing parameters for each candidate. The tensor should have dimensions
         [n, param_size].
-        '''
+        '''        
         param_size = self._param_mean.shape[0]
-
-        # placeholder
-        candidates = torch.zeros([n, param_size], device=self._device)
-
+        candidates = torch.zeros( (n, param_size) )
+        
+        mean_expanded = self._param_mean.expand(n, -1)
+        std_dev_expanded = self._param_std.expand(n, -1)
+        candidates = torch.normal(mean_expanded, std_dev_expanded)
+        
+        print("candidates",  candidates.shape)
+        
         return candidates
 
     def _eval_candidates(self, candidates):
@@ -117,9 +121,16 @@ class CEMAgent(base_agent.BaseAgent):
         '''
         n = candidates.shape[0]
 
-        # placeholder
         rets = np.zeros(n)
         ep_lens = np.zeros(n)
+
+        for i in range(n):
+            torch.nn.utils.vector_to_parameters(candidates[i], self._model.parameters())
+            infos = self._rollout_test(self._eps_per_candidate)
+            rets[i] = infos["mean_return"]
+            ep_lens[i] = infos["mean_ep_len"]  
+        
+        print("ret",rets.shape)      
 
         return rets, ep_lens
 
@@ -130,10 +141,49 @@ class CEMAgent(base_agent.BaseAgent):
         Return the mean (new_mean) and standard deviation (new_std) of
         the new search distribution.
         '''
-        param_size = self._param_mean.shape[0]
 
-        # placeholder
-        new_mean = torch.zeros(param_size, device=self._device)
-        new_std = torch.ones(param_size, device=self._device)
+        # elite_indices = np.argsort(rets)[::-1]
+        # print(elite_indices)
+        # elite_indices = elite_indices[:n_elite]
+        
+        # elite_indices = torch.from_numpy(elite_indices)
+        # print(elite_indices.shape)
+        # elite_params = params[elite_indices]
+        # print(elite_params.shape)
+        
+        ## find the top m elite samples from the n candidates
+        
+        print("the n candidates is", params.shape)
+
+        param_size = self._param_mean.shape[0]
+        n = params.shape[0]
+        n_elite = int(n * self._elite_ratio)
+        
+        print('sample_size:', n)
+        print('param_size', param_size)
+        print('elite_size',n_elite)
+        print("param", params.shape)
+        
+        param_ret_pairs = zip(params, rets)
+        ## Sort the pairs based on returns (descending order)
+        #elite_indices = np.argsort(rets)[::-1]
+        #elite_params = params[elite_indices]
+        #print(elite_params)
+        sorted_pairs = sorted(param_ret_pairs, key=lambda x: x[1], reverse=True)
+        elite_params = torch.stack([pair[0].clone().detach() for pair in sorted_pairs[:n_elite]])
+        #elite_params = [pair[0] for pair in sorted_pairs[:n_elite]]     
+                
+        # elite_params= torch.stack(elite_samples)
+
+        new_mean = elite_params.mean(dim = 0)
+        print("new_mean", new_mean.shape)
+        new_std = elite_params.std(dim=0)
+        print("new_std", new_std.shape)
+        print("std_dim", self._param_std.shape)
+        #new_std = torch.std(elite_params)
+
+        # Clamp the standard deviation
+        new_std = new_std.clamp(min=self._min_param_std)
 
         return new_mean, new_std
+
