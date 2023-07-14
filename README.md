@@ -51,14 +51,13 @@ The output log `.txt` file can also be plotted using the plotting script in `too
 ## Running Command
 
 * For Cross Entropy Method under DeepMind cheetah environment:
-python run.py  --mode test --env_config data/envs/dm_cheetah.yaml --agent_config a2/dm_cheetah_cem_agent.yaml --model_file a2/cheetah_cem_model.pt --visualize 
+`python run.py  --mode test --env_config data/envs/dm_cheetah.yaml --agent_config a2/dm_cheetah_cem_agent.yaml --model_file a2/cheetah_cem_model.pt --visualize`
 
 * For Policy Gradient Method under DeepMind cheetah environment:
-python run.py  --mode test --env_config data/envs/dm_cheetah.yaml --agent_config a2/dm_cheetah_pg_agent.yaml --model_file a2/cheetah_pg_model.pt --visualize
+`python run.py  --mode test --env_config data/envs/dm_cheetah.yaml --agent_config a2/dm_cheetah_pg_agent.yaml --model_file a2/cheetah_pg_model.pt --visualize`
 
 * For Q-learning method under Atari Pong environment:
-
-python run.py --mode test --env_config data/envs/atari_pong.yaml --agent_config a3/atari_dqn_agent.yaml --model_file a3/atari_pong_dqn_model.pt --test_episodes 20 --visualize
+`python run.py --mode test --env_config data/envs/atari_pong.yaml --agent_config a3/atari_dqn_agent.yaml --model_file a3/atari_pong_dqn_model.pt --test_episodes 20 --visualize`
 
 * For Q-learning method under Atari Breakout environment:
-python run.py --mode test --env_config data/envs/atari_breakout.yaml --agent_config a3/atari_dqn_agent.yaml --model_file a3/atari_breakout_dqn_model.pt --test_episodes 20 --visualize
+`python run.py --mode test --env_config data/envs/atari_breakout.yaml --agent_config a3/atari_dqn_agent.yaml --model_file a3/atari_breakout_dqn_model.pt --test_episodes 20 --visualize`
