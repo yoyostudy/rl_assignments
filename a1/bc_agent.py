@@ -147,4 +147,5 @@ class BCAgent(base_agent.BaseAgent):
             loss -= log_prob        
         batch_size = len(norm_obs)
         loss /= batch_size
+        #loss = torch.tensor(loss.item(),requires_grad=True)
         return loss
